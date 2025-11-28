@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>智能出库管理 V7 (全功能版)</title>
+    <title>智能出库管理 V1.8</title>
     
     <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -82,7 +82,8 @@
             Download: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
             Upload: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
             ChevronDown: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>,
-            ChevronUp: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            ChevronUp: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>,
+            Clock: ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         };
 
         // --- 确认弹窗 & Toast ---
@@ -118,8 +119,8 @@
             );
         };
 
-        // --- 智能名称输入组件 (基于 GoodsList) ---
-        const SmartNameInput = ({ onAdd, goodsList, priceDB, currentInput, setCurrentInput }) => {
+        // --- 增强版智能名称输入组件 ---
+        const SmartNameInput = ({ onAdd, goodsList, priceDB, usageHistory, currentInput, setCurrentInput }) => {
             const [suggestions, setSuggestions] = useState([]);
             const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -129,11 +130,21 @@
                     return;
                 }
                 const query = currentInput.toLowerCase();
-                // 从常用库中筛选
-                const matched = goodsList.filter(name => name.toLowerCase().includes(query)).slice(0, 5);
-                setSuggestions(matched);
+                
+                // 1. 筛选匹配项
+                let matched = goodsList.filter(name => name.toLowerCase().includes(query));
+                
+                // 2. 排序逻辑：最近使用的排在前面
+                matched.sort((a, b) => {
+                    const timeA = usageHistory[a] || 0;
+                    const timeB = usageHistory[b] || 0;
+                    return timeB - timeA; // 降序排列，最近的在前
+                });
+
+                // 取前 5 个
+                setSuggestions(matched.slice(0, 5));
                 setShowSuggestions(matched.length > 0);
-            }, [currentInput, goodsList]);
+            }, [currentInput, goodsList, usageHistory]);
 
             const handleSelect = (name) => {
                 onAdd(name);
@@ -146,24 +157,42 @@
                     <input 
                         type="text" 
                         className="w-full bg-gray-100 rounded-lg px-3 text-sm outline-none h-12 focus:ring-2 focus:ring-blue-100 transition-all font-bold"
-                        placeholder="输入商品名称 (自动记忆)"
+                        placeholder="输入商品名称"
                         value={currentInput}
                         onChange={e => { setCurrentInput(e.target.value); setShowSuggestions(true); }}
                         onFocus={() => { if(currentInput) setShowSuggestions(true); }}
                         onKeyDown={e => { if(e.key === 'Enter' && currentInput) { onAdd(currentInput); setCurrentInput(''); setShowSuggestions(false); } }}
                     />
                     {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in">
-                            <div className="bg-gray-50 px-3 py-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">常用货物</div>
-                            {suggestions.map((name) => (
-                                <div key={name} 
-                                    className="p-3 border-b border-gray-50 last:border-0 hover:bg-blue-50 cursor-pointer flex justify-between items-center"
-                                    onMouseDown={(e) => { e.preventDefault(); handleSelect(name); }} 
-                                >
-                                    <span className="font-bold text-sm text-gray-800">{name}</span>
-                                    <span className="text-gray-400 text-xs">{priceDB[name] ? `¥${priceDB[name]}` : ''}</span>
-                                </div>
-                            ))}
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in z-50">
+                            <div className="bg-gray-50 px-3 py-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
+                                <span>联想推荐</span>
+                                <span>按最近使用排序</span>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto">
+                                {suggestions.map((name) => {
+                                    const lastUsed = usageHistory[name];
+                                    const dateStr = lastUsed ? new Date(lastUsed).toLocaleDateString() : '从未';
+                                    return (
+                                        <div key={name} 
+                                            className="p-3 border-b border-gray-50 last:border-0 hover:bg-blue-50 cursor-pointer flex justify-between items-center group active:bg-blue-100"
+                                            onMouseDown={(e) => { e.preventDefault(); handleSelect(name); }} 
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm text-gray-800">{name}</span>
+                                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                                    <Icons.Clock size={10} />
+                                                    <span>上次: {dateStr}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-blue-600 font-bold text-xs">{priceDB[name] ? `¥${priceDB[name]}` : '¥0'}</span>
+                                                <span className="text-[10px] text-gray-400 group-hover:text-blue-400 transition-colors">点击添加</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -175,8 +204,10 @@
             const [priceDB, setPriceDB] = useState(() => JSON.parse(localStorage.getItem('inventory_price_db')) || {});
             const [currentOrder, setCurrentOrder] = useState(() => JSON.parse(localStorage.getItem('inventory_current_order')) || []);
             const [orderHistory, setOrderHistory] = useState(() => JSON.parse(localStorage.getItem('inventory_history')) || []);
-            // 新增: 常用货物库列表 (字符串数组)
             const [goodsList, setGoodsList] = useState(() => JSON.parse(localStorage.getItem('inventory_goods_list')) || []);
+            
+            // 新增: 记录商品最后一次使用的时间戳，用于排序联想词
+            const [usageHistory, setUsageHistory] = useState(() => JSON.parse(localStorage.getItem('inventory_usage_history')) || {});
 
             // --- UI 状态 ---
             const [activeTab, setActiveTab] = useState('current');
@@ -200,6 +231,7 @@
             useEffect(() => { localStorage.setItem('inventory_history', JSON.stringify(orderHistory)); }, [orderHistory]);
             useEffect(() => { localStorage.setItem('inventory_price_db', JSON.stringify(priceDB)); }, [priceDB]);
             useEffect(() => { localStorage.setItem('inventory_goods_list', JSON.stringify(goodsList)); }, [goodsList]);
+            useEffect(() => { localStorage.setItem('inventory_usage_history', JSON.stringify(usageHistory)); }, [usageHistory]);
 
             const showToast = (msg, type = 'success') => {
                 setToastConfig({ show: true, message: msg, type });
@@ -211,6 +243,8 @@
                 if (!name) return;
                 const item = name.trim();
                 if (!item) return;
+                // 更新使用时间
+                setUsageHistory(prev => ({ ...prev, [item]: Date.now() }));
                 // 如果库里没有，加到最前面
                 if (!goodsList.includes(item)) {
                     const newList = [item, ...goodsList];
@@ -221,6 +255,8 @@
             const removeGoodFromLibrary = (good) => {
                 if (confirm(`确定从常用库删除“${good}”吗？`)) {
                     setGoodsList(goodsList.filter(g => g !== good));
+                    // 可选：同时也删除 usageHistory 中的记录
+                    // const newUsage = {...usageHistory}; delete newUsage[good]; setUsageHistory(newUsage);
                 }
             };
 
@@ -230,7 +266,7 @@
                 const finalName = name.trim();
                 const now = Date.now();
                 
-                // 1. 自动更新货物库
+                // 1. 自动更新货物库 & 使用时间
                 updateGoodsLibrary(finalName);
 
                 // 2. 查找是否已在当前单据中
@@ -243,9 +279,9 @@
                     setLastAddedId(newOrder[existingIndex].id);
                 } else {
                     // 新增一行
-                    const defaultPrice = priceDB[finalName] || 0; // 自动读取历史价格
+                    const defaultPrice = priceDB[finalName] || 0; 
                     const newItem = { id: now, name: finalName, price: defaultPrice, qty: 1 };
-                    setCurrentOrder([newItem, ...currentOrder]); // 新增的放最上面
+                    setCurrentOrder([newItem, ...currentOrder]); 
                     setLastAddedId(newItem.id);
                 }
                 
@@ -293,7 +329,7 @@
             // --- 备份与恢复 ---
             const exportBackup = () => {
                 try {
-                    const data = { version: '2.0', orderHistory, priceDB, goodsList };
+                    const data = { version: '2.0', orderHistory, priceDB, goodsList, usageHistory };
                     const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
@@ -318,6 +354,7 @@
                             if(data.orderHistory) setOrderHistory(data.orderHistory);
                             if(data.priceDB) setPriceDB(data.priceDB);
                             if(data.goodsList) setGoodsList(data.goodsList);
+                            if(data.usageHistory) setUsageHistory(data.usageHistory);
                             showToast("数据已恢复");
                             setIsSettingsOpen(false);
                         }
@@ -329,7 +366,7 @@
                 e.target.value = '';
             };
 
-            // --- 统计数据计算 (加强版) ---
+            // --- 统计数据计算 ---
             const statsData = useMemo(() => {
                 const now = new Date();
                 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -339,22 +376,14 @@
 
                 let todayCount = 0, monthCount = 0, yearCount = 0;
                 
-                // 根据 selectedGoodFilter 过滤历史记录中的 *items*
-                // 注意：orderHistory 是单据，我们需要遍历单据中的 items
-                // 为了日历显示方便，我们先构建 filteredOrders
-                
                 const filteredOrders = orderHistory.map(order => {
-                    // 筛选当前单据中符合条件的商品
                     const validItems = selectedGoodFilter 
                         ? order.items.filter(i => i.name === selectedGoodFilter)
                         : order.items;
-                    
-                    // 如果单据中没有符合的商品，则该单据在此次统计中视为“空”或不参与计算
                     const orderQty = validItems.reduce((s, i) => s + Number(i.qty), 0);
                     const orderAmt = validItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
-                    
                     return { ...order, items: validItems, computedQty: orderQty, computedAmt: orderAmt };
-                }).filter(o => o.computedQty > 0); // 只保留有数据的单据
+                }).filter(o => o.computedQty > 0); 
 
                 filteredOrders.forEach(order => {
                     const t = order.date;
@@ -363,7 +392,6 @@
                     if (t >= yearStart) yearCount += order.computedQty;
                 });
 
-                // 日历数据构建
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -375,7 +403,6 @@
                 for(let d=1; d<=daysInMonth; d++) {
                     const dayStart = new Date(year, month, d).getTime();
                     const dayEnd = new Date(year, month, d, 23, 59, 59).getTime();
-                    
                     const dayOrders = filteredOrders.filter(o => o.date >= dayStart && o.date <= dayEnd);
                     const dayTotal = dayOrders.reduce((sum, o) => sum + o.computedQty, 0);
                     const dayAmount = dayOrders.reduce((sum, o) => sum + o.computedAmt, 0);
@@ -393,7 +420,6 @@
                 return { todayCount, monthCount, yearCount, calendarDays };
             }, [orderHistory, currentDate, selectedGoodFilter]);
 
-            // 选中的日期的详情列表
             const selectedDayDetails = useMemo(() => {
                 if (!selectedDayDetail) return [];
                 const targetDay = statsData.calendarDays.find(d => !d.empty && d.date.getTime() === selectedDayDetail);
@@ -470,7 +496,8 @@
                                 <div className="p-3 bg-white border-b border-gray-100 flex gap-2 items-center sticky top-0 z-20">
                                     <SmartNameInput 
                                         goodsList={goodsList}
-                                        priceDB={priceDB} 
+                                        priceDB={priceDB}
+                                        usageHistory={usageHistory} 
                                         currentInput={inputName} 
                                         setCurrentInput={setInputName} 
                                         onAdd={addItemToOrder}
@@ -628,7 +655,6 @@
                                                 <div className="flex justify-between items-center text-sm font-bold pt-2 border-t border-gray-50">
                                                     <span>总计 (含筛选)</span>
                                                     <span className="text-blue-600">
-                                                        {/* 显示该单中筛选商品的数量，或者显示整单金额？通常显示整单，但这里是筛选视图。为了不混淆，显示 order.computedQty (筛选后的数量) 和 order.computedAmt */}
                                                         {order.computedQty}件 / ¥{order.computedAmt.toFixed(2)}
                                                     </span>
                                                 </div>
