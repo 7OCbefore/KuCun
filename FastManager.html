@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>智能出库管理 Pro V3</title>
-    
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>智能出库管理 V2.3 (完美修复版)</title>
+
     <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- 2. React & Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -16,95 +18,211 @@
     <!-- 3. SheetJS (Excel导出) -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
-    <!-- 4. HTML5-QRCode (扫码) -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
     <style>
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
             background-color: #F2F2F7;
             color: #1C1C1E;
+            overscroll-behavior: none;
         }
-        
-        /* 动画定义 */
-        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
-        .animate-scale-up { animation: scaleUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .pt-safe-top { padding-top: env(safe-area-inset-top); }
-        .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .animate-fade-in {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        .animate-scale-up {
+            animation: scaleUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-slide-in-right {
+            animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleUp {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pt-safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .pb-safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
 
         /* 行高亮闪烁动画 */
         @keyframes flashRow {
-            0% { background-color: rgba(59, 130, 246, 0.2); }
-            50% { background-color: rgba(59, 130, 246, 0.1); }
-            100% { background-color: transparent; }
-        }
-        .row-highlight { animation: flashRow 1s ease-out; }
+            0% {
+                background-color: rgba(59, 130, 246, 0.2);
+            }
 
-        /* 扫描器样式修正 */
-        #reader { 
-            width: 100%; 
-            height: 100%;
-            border-radius: 12px; 
-            overflow: hidden; 
-            background: #000; 
-            position: relative;
+            50% {
+                background-color: rgba(59, 130, 246, 0.1);
+            }
+
+            100% {
+                background-color: transparent;
+            }
         }
-        #reader video { 
-            object-fit: cover; 
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 12px; 
+
+        .row-highlight {
+            animation: flashRow 1s ease-out;
         }
-        
+
         /* 日历样式 */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; position: relative; font-size: 14px; font-weight: 500; color: #333; }
-        .calendar-day.empty { background: transparent; pointer-events: none; }
-        .calendar-day.active { background-color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .calendar-day.selected { border: 2px solid #2563EB; background-color: #EFF6FF; }
-        .calendar-day.today { color: #2563EB; font-weight: 900; background-color: #EFF6FF; }
-        .calendar-dot { width: 4px; height: 4px; border-radius: 50%; background-color: #2563EB; margin-top: 2px; }
+        /* 原有样式保持不变，只修改和添加以下部分 */
+
+        /* 1. 加强“今天”的视觉权重 */
+        .calendar-day.today {
+            color: white !important;
+            font-weight: 900;
+            background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 可选：给今天加个小角标更醒目 */
+        .calendar-day.today::after {
+            content: "今";
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 8px;
+            font-weight: bold;
+            color: white;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 1px 3px;
+            line-height: 1;
+        }
+
+        /* 2. 选中日期保持高对比（蓝色边框 + 浅蓝底） */
+        .calendar-day.selected {
+            border: 2px solid #2563EB;
+            background-color: #EFF6FF !important;
+            font-weight: bold;
+        }
+
+        /* 3. 有数据的日子保持浅灰底（不能盖住今天） */
+        .calendar-day.active {
+            background-color: #FAFAFA;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 确保今天永远是最醒目的 */
+        .calendar-day.today.active {
+            background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
+        }
     </style>
 </head>
+
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- 图标组件 ---
-        const Icons = {
-            Package: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
-            Scan: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>,
-            Save: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>,
-            History: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>,
-            Trash: ({size=18}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
-            Plus: ({size=18}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-            Minus: ({size=18}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-            X: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            Share: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>,
-            Copy: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
-            ChevronLeft: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
-            ChevronRight: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
-            Calendar: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
-            Info: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>,
-            AlertTriangle: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        // --- GitHub 风格时间显示工具 ---
+        const timeAgo = (dateInput) => {
+            if (!dateInput) return "";
+            try {
+                const date = new Date(dateInput);
+                const now = new Date();
+                const seconds = Math.floor((now - date) / 1000);
+
+                if (seconds < 60) return "刚刚";
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `${minutes}分钟前`;
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}小时前`;
+                const days = Math.floor(hours / 24);
+                if (days < 30) return `${days}天前`;
+                const months = Math.floor(days / 30);
+                if (months < 12) return `${months}个月前`;
+                return `${Math.floor(months / 12)}年前`;
+            } catch (e) { return ""; }
         };
 
-        // --- 通用确认弹窗组件 ---
-        const ConfirmModal = ({ isOpen, title, content, onConfirm, onCancel, confirmText="确认", cancelText="取消", isDangerous=false }) => {
+        // --- 图标组件 ---
+        const Icons = {
+            Package: ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
+            Save: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>,
+            History: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4" /></svg>,
+            Trash: ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+            Plus: ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            Minus: ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            X: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+            Share: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>,
+            Copy: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
+            ChevronLeft: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
+            ChevronRight: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+            Info: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>,
+            AlertTriangle: ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
+            Today: ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M12 14h.01" /></svg>,
+            Settings: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
+            Download: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>,
+            Upload: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
+            ChevronDown: ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>,
+            ChevronUp: ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>,
+            Clock: ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+            Edit: ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
+            MessageSquare: ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        };
+
+        // --- 确认弹窗 ---
+        const ConfirmModal = ({ isOpen, title, content, onConfirm, onCancel, confirmText = "确认", cancelText = "取消", isDangerous = false }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onCancel}></div>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 animate-fade-in">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel}></div>
                     <div className="bg-white rounded-2xl w-full max-w-xs p-6 relative z-10 shadow-2xl animate-scale-up">
                         <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${isDangerous ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
                             {isDangerous ? <Icons.AlertTriangle /> : <Icons.Info />}
@@ -112,590 +230,357 @@
                         <h3 className="text-lg font-bold text-gray-900 text-center mb-2">{title}</h3>
                         <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">{content}</p>
                         <div className="flex gap-3">
-                            <button onClick={onCancel} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl active:bg-gray-200 transition-colors text-sm">{cancelText}</button>
-                            <button onClick={onConfirm} className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform text-sm ${isDangerous ? 'bg-red-500 shadow-red-200' : 'bg-blue-600 shadow-blue-200'}`}>
-                                {confirmText}
-                            </button>
+                            <button onClick={onCancel} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl text-sm">{cancelText}</button>
+                            <button onClick={onConfirm} className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg text-sm ${isDangerous ? 'bg-red-500 shadow-red-200' : 'bg-blue-600 shadow-blue-200'}`}>{confirmText}</button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- Toast 提示组件 ---
+        // --- Toast 提示 ---
         const Toast = ({ show, message, type = 'success' }) => {
             if (!show) return null;
             return (
-                <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-[110] animate-fade-in">
-                    <div className={`px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold text-white ${type === 'success' ? 'bg-black/80' : 'bg-red-500/90'}`}>
-                        {type === 'success' ? <Icons.Info size={16}/> : <Icons.AlertTriangle size={16}/>}
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[1100] animate-fade-in pointer-events-none">
+                    <div className={`px-5 py-2.5 rounded-full shadow-xl flex items-center gap-2 text-sm font-bold text-white backdrop-blur-md ${type === 'success' ? 'bg-black/80' : 'bg-red-500/90'}`}>
+                        {type === 'success' ? <Icons.Info size={16} /> : <Icons.AlertTriangle size={16} />}
                         {message}
                     </div>
                 </div>
             );
         };
 
-        const App = () => {
-            // --- 数据状态 ---
-            const [currentOrder, setCurrentOrder] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('inventory_current_order')) || []; } catch { return []; }
-            });
-            const [orderHistory, setOrderHistory] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('inventory_history')) || []; } catch { return []; }
-            });
-            const [productDB, setProductDB] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('inventory_db')) || {}; } catch { return {}; }
-            });
+        // --- 智能名称输入组件 ---
+        const SmartNameInput = ({ onAdd, goodsList, priceDB, usageHistory, currentInput, setCurrentInput }) => {
+            const [suggestions, setSuggestions] = useState([]);
+            const [showSuggestions, setShowSuggestions] = useState(false);
 
-            // --- UI 状态 ---
+            useEffect(() => {
+                if (!currentInput.trim()) { setSuggestions([]); return; }
+                const query = currentInput.toLowerCase();
+                let matched = goodsList.filter(name => name.toLowerCase().includes(query));
+                matched.sort((a, b) => (usageHistory[b] || 0) - (usageHistory[a] || 0));
+                setSuggestions(matched.slice(0, 5));
+                setShowSuggestions(matched.length > 0);
+            }, [currentInput, goodsList, usageHistory]);
+
+            const handleSelect = (name) => { onAdd(name); setCurrentInput(''); setShowSuggestions(false); };
+
+            return (
+                <div className="relative flex-1 z-20">
+                    <input type="text" className="w-full bg-gray-100 rounded-lg px-3 text-sm outline-none h-12 focus:ring-2 focus:ring-blue-100 transition-all font-bold" placeholder="输入商品名称" value={currentInput} onChange={e => { setCurrentInput(e.target.value); setShowSuggestions(true); }} onFocus={() => { if (currentInput) setShowSuggestions(true); }} onKeyDown={e => { if (e.key === 'Enter' && currentInput) { onAdd(currentInput); setCurrentInput(''); setShowSuggestions(false); } }} />
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in z-50">
+                            <div className="bg-gray-50 px-3 py-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between"><span>联想推荐</span><span>按最近使用排序</span></div>
+                            <div className="max-h-60 overflow-y-auto">
+                                {suggestions.map((name) => (
+                                    <div key={name} className="p-3 border-b border-gray-50 last:border-0 hover:bg-blue-50 cursor-pointer flex justify-between items-center group active:bg-blue-100" onMouseDown={(e) => { e.preventDefault(); handleSelect(name); }}>
+                                        <div className="flex flex-col"><span className="font-bold text-sm text-gray-800">{name}</span><div className="flex items-center gap-1 text-[10px] text-gray-400"><Icons.Clock size={10} /><span>上次: {usageHistory[name] ? new Date(usageHistory[name]).toLocaleDateString() : '从未'}</span></div></div>
+                                        <div className="flex flex-col items-end"><span className="text-blue-600 font-bold text-xs">{priceDB[name] ? `¥${priceDB[name]}` : '¥0'}</span><span className="text-[10px] text-gray-400 group-hover:text-blue-400 transition-colors">点击添加</span></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [priceDB, setPriceDB] = useState(() => JSON.parse(localStorage.getItem('inventory_price_db')) || {});
+            const [currentOrder, setCurrentOrder] = useState(() => JSON.parse(localStorage.getItem('inventory_current_order')) || []);
+            const [orderHistory, setOrderHistory] = useState(() => JSON.parse(localStorage.getItem('inventory_history')) || []);
+            const [goodsList, setGoodsList] = useState(() => JSON.parse(localStorage.getItem('inventory_goods_list')) || []);
+            const [usageHistory, setUsageHistory] = useState(() => JSON.parse(localStorage.getItem('inventory_usage_history')) || {});
+            const [currentRemark, setCurrentRemark] = useState("");
+
             const [activeTab, setActiveTab] = useState('current');
-            const [showScanner, setShowScanner] = useState(false);
-            const [lastScannedCode, setLastScannedCode] = useState(null);
-            const [manualCode, setManualCode] = useState("");
-            
-            // 弹窗与提示状态
+            const [inputName, setInputName] = useState("");
+            const [lastAddedId, setLastAddedId] = useState(null);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [selectedDayDetail, setSelectedDayDetail] = useState(null);
+            const [selectedGoodFilter, setSelectedGoodFilter] = useState(null);
+            const [isGoodsExpanded, setIsGoodsExpanded] = useState(false);
+            const [editingOrderId, setEditingOrderId] = useState(null);
+
             const [modalConfig, setModalConfig] = useState({ isOpen: false });
             const [toastConfig, setToastConfig] = useState({ show: false, message: '', type: 'success' });
+            const fileInputRef = useRef(null);
 
-            // 日历/统计相关状态
-            const [currentDate, setCurrentDate] = useState(new Date()); 
-            const [viewingOrderId, setViewingOrderId] = useState(null); // 当前查看的历史订单ID
-
-            const scannerRef = useRef(null);
-            const lastTimeRef = useRef(0);
-
-            // --- 持久化 ---
             useEffect(() => { localStorage.setItem('inventory_current_order', JSON.stringify(currentOrder)); }, [currentOrder]);
             useEffect(() => { localStorage.setItem('inventory_history', JSON.stringify(orderHistory)); }, [orderHistory]);
-            useEffect(() => { localStorage.setItem('inventory_db', JSON.stringify(productDB)); }, [productDB]);
+            useEffect(() => { localStorage.setItem('inventory_price_db', JSON.stringify(priceDB)); }, [priceDB]);
+            useEffect(() => { localStorage.setItem('inventory_goods_list', JSON.stringify(goodsList)); }, [goodsList]);
+            useEffect(() => { localStorage.setItem('inventory_usage_history', JSON.stringify(usageHistory)); }, [usageHistory]);
 
-            // --- 工具函数: 显示Toast ---
-            const showToast = (msg, type = 'success') => {
-                setToastConfig({ show: true, message: msg, type });
-                setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 2000);
+            const showToast = (msg, type = 'success') => { setToastConfig({ show: true, message: msg, type }); setTimeout(() => setToastConfig(prev => ({ ...prev, show: false })), 2000); };
+            const safeNumberInput = (value) => { let num = parseFloat(value); return (isNaN(num) || num < 0) ? 0 : num; };
+
+            const updateGoodsLibrary = (name) => { if (!name) return; const item = name.trim(); if (!item) return; setUsageHistory(prev => ({ ...prev, [item]: Date.now() })); if (!goodsList.includes(item)) setGoodsList([item, ...goodsList]); };
+            const removeGoodFromLibrary = (good) => { if (confirm(`删除“${good}”？`)) setGoodsList(goodsList.filter(g => g !== good)); };
+            const addItemToOrder = (name) => {
+                if (!name.trim()) return; const finalName = name.trim(); const now = Date.now(); updateGoodsLibrary(finalName);
+                const existingIndex = currentOrder.findIndex(item => item.name === finalName);
+                if (existingIndex !== -1) { const newOrder = [...currentOrder]; newOrder[existingIndex].qty += 1; setCurrentOrder(newOrder); setLastAddedId(newOrder[existingIndex].id); }
+                else { const newItem = { id: now, name: finalName, price: priceDB[finalName] || 0, qty: 1 }; setCurrentOrder([newItem, ...currentOrder]); setLastAddedId(newItem.id); }
+                setTimeout(() => setLastAddedId(null), 800); if (navigator.vibrate) navigator.vibrate(50);
             };
-
-            // --- 核心逻辑: 添加商品 ---
-            const addItemToOrder = (code) => {
-                const now = Date.now();
-                const existingIndex = currentOrder.findIndex(item => item.code === code);
-
-                if (existingIndex !== -1) {
-                    const newOrder = [...currentOrder];
-                    newOrder[existingIndex].qty += 1;
-                    setCurrentOrder(newOrder);
-                } else {
-                    const productInfo = productDB[code] || { name: "", price: 0 };
-                    const newItem = {
-                        id: now,
-                        code: code,
-                        name: productInfo.name,
-                        price: productInfo.price,
-                        qty: 1
-                    };
-                    setCurrentOrder([newItem, ...currentOrder]);
-                }
-                
-                setLastScannedCode(code);
-                setTimeout(() => setLastScannedCode(null), 1000);
-                const audio = new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3');
-                audio.play().catch(()=>{});
-            };
-
-            // --- 扫码回调 ---
-            const onScanSuccess = (decodedText) => {
-                const now = Date.now();
-                if (now - lastTimeRef.current < 1000) return; // 1秒防抖
-                lastTimeRef.current = now;
-                addItemToOrder(decodedText);
-            };
-
-            // --- 控制扫描器开关 (修复居中问题) ---
-            useEffect(() => {
-                if (showScanner && activeTab === 'current') {
-                    const timer = setTimeout(() => {
-                        const html5QrcodeScanner = new Html5Qrcode("reader");
-                        scannerRef.current = html5QrcodeScanner;
-                        
-                        // 强制使用固定的宽高，并在CSS中控制居中
-                        // 手机竖屏通常宽 < 高，使用屏幕宽度的 70% 作为扫描框
-                        const boxSize = Math.min(window.innerWidth * 0.7, 280); 
-                        
-                        const config = { 
-                            fps: 10, 
-                            qrbox: { width: boxSize, height: boxSize },
-                            aspectRatio: 1.0 
-                        }; 
-                        
-                        html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, (err)=>{})
-                            .catch(err => {
-                                console.error(err);
-                                showToast("摄像头启动失败", "error");
-                                setShowScanner(false);
-                            });
-                    }, 100);
-                    return () => clearTimeout(timer);
-                } else {
-                    if (scannerRef.current) {
-                        scannerRef.current.stop().then(() => scannerRef.current.clear()).catch(()=>{});
-                        scannerRef.current = null;
-                    }
-                }
-            }, [showScanner, activeTab]);
-
-            // --- 开单页: 编辑操作 ---
-            const updateCurrentItem = (id, field, value) => {
-                setCurrentOrder(prev => prev.map(item => {
-                    if (item.id === id) {
-                        const updated = { ...item, [field]: value };
-                        if (field === 'name' || field === 'price') {
-                            setTimeout(() => {
-                                setProductDB(prevDB => ({
-                                    ...prevDB,
-                                    [updated.code]: { name: updated.name, price: Number(updated.price) }
-                                }));
-                            }, 0);
-                        }
-                        return updated;
-                    }
-                    return item;
-                }));
-            };
-
-            // 开单页: 删除单项 (带确认)
-            const deleteCurrentItem = (id) => {
-                setModalConfig({
-                    isOpen: true,
-                    title: "删除商品",
-                    content: "确定从当前清单中移除此商品吗？",
-                    isDangerous: true,
-                    onConfirm: () => {
-                        setCurrentOrder(prev => prev.filter(item => item.id !== id));
-                        setModalConfig({ isOpen: false });
-                        showToast("已移除");
-                    },
-                    onCancel: () => setModalConfig({ isOpen: false })
-                });
-            };
-
-            // 开单页: 归档 (带确认)
+            const updateCurrentItem = (id, field, value) => { const safeValue = safeNumberInput(value); setCurrentOrder(prev => prev.map(item => { if (item.id === id) { const updated = { ...item, [field]: safeValue }; if (field === 'price') setPriceDB(prev => ({ ...prev, [item.name]: safeValue })); return updated; } return item; })); };
+            const deleteCurrentItem = (id) => { setModalConfig({ isOpen: true, title: "移除商品", content: "确定移除吗？", isDangerous: true, onConfirm: () => { setCurrentOrder(prev => prev.filter(item => item.id !== id)); setModalConfig({ isOpen: false }); }, onCancel: () => setModalConfig({ isOpen: false }) }); };
             const saveCurrentOrder = () => {
                 if (currentOrder.length === 0) return showToast("清单为空", "error");
-                
                 setModalConfig({
-                    isOpen: true,
-                    title: "确认归档",
-                    content: `共 ${currentOrder.length} 项商品，即将保存并结束当前出库单。`,
-                    onConfirm: () => {
-                        const totalQty = currentOrder.reduce((sum, i) => sum + i.qty, 0);
-                        const totalAmount = currentOrder.reduce((sum, i) => sum + (i.price * i.qty), 0);
-
-                        const newHistoryRecord = {
-                            id: Date.now(),
-                            date: Date.now(),
-                            totalQty,
-                            totalAmount,
-                            items: [...currentOrder]
-                        };
-
-                        setOrderHistory([newHistoryRecord, ...orderHistory]);
-                        setCurrentOrder([]);
-                        setShowScanner(false);
-                        setModalConfig({ isOpen: false });
-                        showToast("归档成功");
-                    },
-                    onCancel: () => setModalConfig({ isOpen: false })
+                    isOpen: true, title: "确认归档", content: `共 ${currentOrder.length} 项商品`, onConfirm: () => {
+                        const totalQty = currentOrder.reduce((sum, i) => sum + Number(i.qty), 0); const totalAmount = currentOrder.reduce((sum, i) => sum + (Number(i.price) * Number(i.qty)), 0);
+                        setOrderHistory([{ id: Date.now(), date: Date.now(), totalQty, totalAmount, items: [...currentOrder], remark: currentRemark }, ...orderHistory]);
+                        setCurrentOrder([]); setCurrentRemark(""); setModalConfig({ isOpen: false }); showToast("归档成功");
+                    }, onCancel: () => setModalConfig({ isOpen: false })
                 });
             };
 
-            // --- 历史详情页: 编辑操作 ---
-            // 获取当前正在查看的订单对象
-            const viewingOrder = useMemo(() => 
-                orderHistory.find(o => o.id === viewingOrderId), 
-            [orderHistory, viewingOrderId]);
-
-            // 历史: 修改单项
-            const updateHistoryItem = (itemId, field, value) => {
-                if (!viewingOrder) return;
-                const updatedItems = viewingOrder.items.map(item => 
-                    item.id === itemId ? { ...item, [field]: value } : item
-                );
-                // 重新计算总计
-                const totalQty = updatedItems.reduce((s, i) => s + Number(i.qty), 0);
-                const totalAmount = updatedItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
-
-                setOrderHistory(prev => prev.map(o => 
-                    o.id === viewingOrderId ? { ...o, items: updatedItems, totalQty, totalAmount } : o
-                ));
-            };
-
-            // 历史: 删除单项 (带确认)
-            const deleteHistoryItem = (itemId) => {
-                setModalConfig({
-                    isOpen: true,
-                    title: "删除历史条目",
-                    content: "确定从历史记录中移除此商品吗？操作无法撤销。",
-                    isDangerous: true,
-                    onConfirm: () => {
-                        if (!viewingOrder) return;
-                        const updatedItems = viewingOrder.items.filter(item => item.id !== itemId);
-                        
-                        // 如果删空了，是否删除整单？这里仅更新为空单，或保留
-                        const totalQty = updatedItems.reduce((s, i) => s + Number(i.qty), 0);
-                        const totalAmount = updatedItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
-
-                        setOrderHistory(prev => prev.map(o => 
-                            o.id === viewingOrderId ? { ...o, items: updatedItems, totalQty, totalAmount } : o
-                        ));
-                        setModalConfig({ isOpen: false });
-                        showToast("条目已删除");
-                    },
-                    onCancel: () => setModalConfig({ isOpen: false })
-                });
-            };
-
-            // 历史: 删除整单 (带确认)
-            const deleteHistoryOrder = () => {
-                setModalConfig({
-                    isOpen: true,
-                    title: "删除整单",
-                    content: "确定要彻底删除这条历史记录吗？此操作无法撤销。",
-                    isDangerous: true,
-                    confirmText: "彻底删除",
-                    onConfirm: () => {
-                        setOrderHistory(prev => prev.filter(o => o.id !== viewingOrderId));
-                        setViewingOrderId(null); // 关闭详情页
-                        setModalConfig({ isOpen: false });
-                        showToast("记录已删除");
-                    },
-                    onCancel: () => setModalConfig({ isOpen: false })
-                });
-            };
-
-            // --- 通用导出/复制 ---
-            const copyOrderText = (orderItems, dateStr = "当前") => {
-                if (!orderItems || orderItems.length === 0) return showToast("无数据", "error");
-                
-                const tQty = orderItems.reduce((s, i) => s + Number(i.qty), 0);
-                const tAmt = orderItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
-                
-                let text = `出库单 (${dateStr})\n`;
-                text += `----------------\n`;
-                orderItems.forEach(item => {
-                    text += `${item.name || '未命名'} (${item.code})\n`;
-                    text += `   x${item.qty}   ¥${(item.price * item.qty).toFixed(2)}\n`;
-                });
-                text += `----------------\n`;
-                text += `总数量: ${tQty}\n`;
-                text += `总金额: ¥${tAmt.toFixed(2)}\n`;
-
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast("已复制到剪贴板");
-                } catch (err) {
-                    showToast("复制失败", "error");
-                }
-                document.body.removeChild(textarea);
-            };
-
-            const exportOrderExcel = (orderItems, filename) => {
-                if (!orderItems || orderItems.length === 0) return showToast("无数据", "error");
-                const data = orderItems.map(item => ({
-                    "条码": item.code, "商品名称": item.name, "单价": item.price, "数量": item.qty, "小计": (item.price * item.qty).toFixed(2)
+            const editingOrder = useMemo(() => orderHistory.find(o => o.id === editingOrderId), [orderHistory, editingOrderId]);
+            const updateHistoryItem = (orderId, itemId, field, value) => {
+                const safeValue = safeNumberInput(value);
+                setOrderHistory(prev => prev.map(order => {
+                    if (order.id !== orderId) return order;
+                    const updatedItems = order.items.map(item => item.id === itemId ? { ...item, [field]: safeValue } : item);
+                    const newTotalQty = updatedItems.reduce((s, i) => s + Number(i.qty || 0), 0);
+                    const newTotalAmount = updatedItems.reduce((s, i) => s + (Number(i.price || 0) * Number(i.qty || 0)), 0);
+                    return { ...order, items: updatedItems, totalQty: newTotalQty, totalAmount: newTotalAmount, lastModified: Date.now() };
                 }));
-                data.push({ "条码": "总计", "数量": orderItems.reduce((s, i)=>s+Number(i.qty),0), "小计": orderItems.reduce((s,i)=>s+(Number(i.price)*Number(i.qty)),0).toFixed(2) });
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-                XLSX.writeFile(wb, filename + ".xlsx");
+            };
+            const updateHistoryOrderRemark = (orderId, remark) => { setOrderHistory(prev => prev.map(order => order.id === orderId ? { ...order, remark, lastModified: Date.now() } : order)); };
+            const deleteHistoryItem = (orderId, itemId) => {
+                setModalConfig({
+                    isOpen: true, title: "删除条目", content: "确定删除吗？", isDangerous: true, onConfirm: () => {
+                        setOrderHistory(prev => prev.map(order => {
+                            if (order.id !== orderId) return order;
+                            const updatedItems = order.items.filter(item => item.id !== itemId);
+                            const newTotalQty = updatedItems.reduce((s, i) => s + Number(i.qty || 0), 0);
+                            const newTotalAmount = updatedItems.reduce((s, i) => s + (Number(i.price || 0) * Number(i.qty || 0)), 0);
+                            return { ...order, items: updatedItems, totalQty: newTotalQty, totalAmount: newTotalAmount, lastModified: Date.now() };
+                        }).filter(order => order.items.length > 0));
+                        setModalConfig({ isOpen: false }); showToast("已删除");
+                    }, onCancel: () => setModalConfig({ isOpen: false })
+                });
+            };
+            const deleteHistoryOrder = (orderId) => {
+                setModalConfig({
+                    isOpen: true, title: "删除整单", content: "操作不可逆", isDangerous: true, onConfirm: () => {
+                        setOrderHistory(prev => prev.filter(o => o.id !== orderId)); setEditingOrderId(null); setModalConfig({ isOpen: false }); showToast("已删除整单");
+                    }, onCancel: () => setModalConfig({ isOpen: false })
+                });
             };
 
-            // --- 日历逻辑 ---
-            const calendarData = useMemo(() => {
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const firstDayWeek = new Date(year, month, 1).getDay();
-                
-                const days = [];
-                for(let i=0; i<firstDayWeek; i++) days.push({ empty: true });
-                for(let d=1; d<=daysInMonth; d++) {
-                    const dateObj = new Date(year, month, d);
-                    const dayStart = dateObj.getTime();
-                    const dayEnd = new Date(year, month, d, 23, 59, 59).getTime();
-                    
-                    // 查找当天的记录
-                    const dayRecords = orderHistory.filter(r => r.date >= dayStart && r.date <= dayEnd);
-                    
-                    days.push({ 
-                        day: d, 
-                        date: dateObj, 
-                        hasData: dayRecords.length > 0, 
-                        records: dayRecords
-                    });
+            // --- 修复后的功能实现 ---
+            const copyOrderText = (orderItems, dateStr = "当前", remark = "") => {
+                if (!orderItems || orderItems.length === 0) return showToast("无数据", "error");
+                const tQty = orderItems.reduce((s, i) => s + Number(i.qty || 0), 0);
+                const tAmt = orderItems.reduce((s, i) => s + (Number(i.price || 0) * Number(i.qty || 0)), 0);
+                let text = `📅 出库单 (${dateStr})\n----------------\n`;
+                orderItems.forEach(item => text += `${item.name}\n   x${item.qty}  (¥${item.price}/个)  = ¥${(Number(item.price) * Number(item.qty)).toFixed(2)}\n`);
+                text += `----------------\n总数量: ${tQty}\n总金额: ¥${tAmt.toFixed(2)}\n`;
+                if (remark) text += `备注: ${remark}\n`;
+                const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); showToast("完整清单已复制"); } catch (e) { showToast("复制失败", "error"); }
+                document.body.removeChild(ta);
+            };
+
+            const exportOrderExcel = (orderItems, filename, remark) => {
+                if (!orderItems || orderItems.length === 0) return showToast("无数据", "error");
+                const data = orderItems.map(i => ({ "商品名称": i.name, "单价": i.price, "数量": i.qty, "小计": ((i.price || 0) * (i.qty || 0)).toFixed(2) }));
+                data.push({ "商品名称": "总计", "数量": orderItems.reduce((s, i) => s + Number(i.qty || 0), 0), "小计": orderItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 0)), 0).toFixed(2) });
+                if (remark) data.push({ "商品名称": "备注", "单价": remark });
+                const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+                try { XLSX.writeFile(wb, filename + ".xlsx"); showToast("导出成功"); } catch (e) { showToast("导出失败", "error"); }
+            };
+
+            const exportBackup = () => {
+                try {
+                    const data = { version: '2.3', orderHistory, priceDB, goodsList, usageHistory };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); showToast("备份已下载");
+                } catch (e) { showToast("备份失败", "error"); }
+            };
+
+            const handleRestore = (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (confirm(`确定恢复数据吗？\n包含 ${data.orderHistory?.length || 0} 条历史记录`)) {
+                            if (data.orderHistory) setOrderHistory(data.orderHistory); if (data.priceDB) setPriceDB(data.priceDB); if (data.goodsList) setGoodsList(data.goodsList); if (data.usageHistory) setUsageHistory(data.usageHistory);
+                            showToast("数据已恢复"); setIsSettingsOpen(false);
+                        }
+                    } catch (err) { showToast("文件格式错误", "error"); }
+                }; reader.readAsText(file); e.target.value = '';
+            };
+
+            const statsData = useMemo(() => {
+                const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()).getTime();
+                const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime();
+                const yearStart = new Date(currentDate.getFullYear(), 0, 1).getTime();
+                let todayCount = 0, monthCount = 0, yearCount = 0;
+
+                const filteredOrders = orderHistory.map(order => {
+                    const items = order.items || [];
+                    const validItems = selectedGoodFilter ? items.filter(i => i.name === selectedGoodFilter) : items;
+                    return { ...order, items: validItems, computedQty: validItems.reduce((s, i) => s + Number(i.qty || 0), 0), computedAmt: validItems.reduce((s, i) => s + (Number(i.price || 0) * Number(i.qty || 0)), 0) };
+                }).filter(o => o.computedQty > 0);
+
+                filteredOrders.forEach(o => {
+                    if (o.date >= new Date().setHours(0, 0, 0, 0)) todayCount += o.computedQty;
+                    if (o.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()) monthCount += o.computedQty;
+                    if (o.date >= new Date(new Date().getFullYear(), 0, 1).getTime()) yearCount += o.computedQty;
+                });
+
+                const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+                const calendarDays = Array(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()).fill({ empty: true });
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), d).getTime();
+                    const dayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), d, 23, 59, 59).getTime();
+                    const dayOrders = filteredOrders.filter(o => o.date >= dayStart && o.date <= dayEnd);
+                    calendarDays.push({ day: d, date: new Date(dayStart), count: dayOrders.reduce((s, o) => s + o.computedQty, 0), hasData: dayOrders.length > 0, orders: dayOrders });
                 }
-                return days;
-            }, [currentDate, orderHistory]);
+                return { todayCount, monthCount, yearCount, calendarDays };
+            }, [orderHistory, currentDate, selectedGoodFilter]);
 
-            const changeMonth = (delta) => {
-                setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + delta)));
-            };
-            
-            const goToday = () => {
-                setCurrentDate(new Date());
-            };
+            const selectedDayDetails = useMemo(() => {
+                if (!selectedDayDetail) return [];
+                const target = statsData.calendarDays.find(d => !d.empty && d.date.getTime() === selectedDayDetail);
+                return target ? target.orders : [];
+            }, [selectedDayDetail, statsData]);
 
-            const currentTotalAmount = currentOrder.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            // 修复：必须在此处定义 currentTotalAmount，否则 JSX 中无法使用
+            const currentTotalAmount = currentOrder.reduce((sum, i) => sum + (Number(i.price || 0) * Number(i.qty || 0)), 0).toFixed(2);
 
             return (
                 <div className="min-h-screen bg-gray-50 flex flex-col pb-20 max-w-lg mx-auto shadow-2xl relative overflow-hidden">
-                    
-                    {/* 全局弹窗 */}
                     <ConfirmModal {...modalConfig} />
                     <Toast {...toastConfig} />
 
-                    {/* 顶部标题栏 */}
                     <div className="bg-white border-b border-gray-200 sticky top-0 z-30 pt-safe-top">
                         <div className="px-4 h-14 flex items-center justify-between">
-                            <h1 className="font-bold text-lg text-slate-800">
-                                {activeTab === 'current' ? '出库开单' : '历史记录'}
-                            </h1>
-                            {activeTab === 'current' && (
-                                <button 
-                                    onClick={() => setShowScanner(!showScanner)}
-                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${showScanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}
-                                >
-                                    <Icons.Scan size={16} />
-                                    {showScanner ? '关闭扫码' : '开启扫码'}
-                                </button>
-                            )}
-                            {activeTab === 'history' && (
-                                <button onClick={goToday} className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full">
-                                    回到今天
-                                </button>
-                            )}
+                            <h1 className="font-bold text-lg text-slate-800">{activeTab === 'current' ? '出库开单' : '统计报表'}</h1>
+                            <div className="flex gap-4">
+                                {activeTab === 'history' && <button onClick={() => { setCurrentDate(new Date()); setSelectedDayDetail(null); }} className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full flex items-center gap-1"><Icons.Today size={14} /> 回今天</button>}
+                                <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-blue-600"><Icons.Settings size={22} /></button>
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
-                        
-                        {/* Tab 1: 开单 */}
-                        {activeTab === 'current' && (
+                        {activeTab === 'current' ? (
                             <div className="flex flex-col min-h-full">
-                                {/* 摄像头 */}
-                                {showScanner && (
-                                    <div className="bg-black w-full aspect-square relative flex items-center justify-center">
-                                        <div id="reader" className="w-full h-full"></div>
-                                        <div className="absolute inset-0 pointer-events-none border-[30px] border-black/50 z-10 box-border"></div>
-                                        <div className="absolute text-white/80 text-xs bottom-4 z-20">将条码放入框内</div>
-                                    </div>
-                                )}
-
-                                <div className="p-3 bg-white border-b border-gray-100 flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        className="flex-1 bg-gray-100 rounded-lg px-3 text-sm outline-none h-10 focus:ring-2 focus:ring-blue-100 transition-all"
-                                        placeholder="扫描或手动输入条码..."
-                                        value={manualCode}
-                                        onChange={e => setManualCode(e.target.value)}
-                                        onKeyDown={e => {if(e.key === 'Enter' && manualCode) {addItemToOrder(manualCode); setManualCode('');}}}
-                                    />
-                                    <button onClick={() => {if(manualCode) {addItemToOrder(manualCode); setManualCode('');}}} className="bg-blue-600 text-white px-4 h-10 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-transform">
-                                        添加
-                                    </button>
+                                <div className="p-3 bg-white border-b border-gray-100 flex gap-2 items-center sticky top-0 z-20">
+                                    <SmartNameInput goodsList={goodsList} priceDB={priceDB} usageHistory={usageHistory} currentInput={inputName} setCurrentInput={setInputName} onAdd={addItemToOrder} />
+                                    <button onClick={() => { if (inputName) { addItemToOrder(inputName); setInputName(''); } }} className="bg-blue-600 text-white px-5 h-12 rounded-lg font-bold text-sm shadow-sm">添加</button>
                                 </div>
-
                                 <div className="p-3 space-y-3 pb-32">
-                                    {currentOrder.length === 0 ? (
-                                        <div className="text-center py-10 text-gray-400 text-sm">
-                                            暂无商品<br/>请开启扫码或手动添加
+                                    {currentOrder.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">暂无商品<br />请输入名称添加</div> : currentOrder.map(item => (
+                                        <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border border-gray-100 transition-all ${lastAddedId === item.id ? 'row-highlight' : ''}`}>
+                                            <div className="flex justify-between items-start mb-3"><div className="flex-1 mr-2"><input type="text" className="font-bold text-lg w-full bg-transparent outline-none" value={item.name} onChange={e => updateCurrentItem(item.id, 'name', e.target.value)} /></div><button onClick={() => deleteCurrentItem(item.id)} className="text-gray-300 hover:text-red-500"><Icons.Trash /></button></div>
+                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg"><div className="flex items-center gap-1"><span className="text-gray-400 text-xs">¥</span><input type="number" className="w-16 bg-transparent font-bold outline-none" value={item.price} onChange={e => updateCurrentItem(item.id, 'price', e.target.value)} /></div><div className="flex items-center gap-2"><button onClick={() => updateCurrentItem(item.id, 'qty', Math.max(1, Number(item.qty) - 1))} className="w-8 h-8 bg-white border rounded-lg flex justify-center items-center"><Icons.Minus size={16} /></button><input type="number" className="w-12 text-center bg-transparent font-bold text-lg outline-none" value={item.qty} onChange={e => updateCurrentItem(item.id, 'qty', e.target.value)} /><button onClick={() => updateCurrentItem(item.id, 'qty', Number(item.qty) + 1)} className="w-8 h-8 bg-white border rounded-lg flex justify-center items-center"><Icons.Plus size={16} /></button></div></div>
                                         </div>
-                                    ) : (
-                                        currentOrder.map(item => (
-                                            <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border border-gray-100 transition-colors duration-500 ${lastScannedCode === item.code ? 'row-highlight ring-2 ring-blue-400 border-blue-400' : ''}`}>
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="flex-1 mr-2">
-                                                        <input type="text" className={`font-bold text-base w-full outline-none bg-transparent ${!item.name ? 'placeholder-red-300' : 'text-slate-800'}`} placeholder="点击输入商品名称..." value={item.name} onChange={e => updateCurrentItem(item.id, 'name', e.target.value)} />
-                                                        <div className="text-xs text-gray-400 font-mono mt-0.5">{item.code}</div>
-                                                    </div>
-                                                    <button onClick={() => deleteCurrentItem(item.id)} className="text-gray-300 p-1 hover:text-red-500"><Icons.Trash /></button>
-                                                </div>
-                                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-gray-400 text-xs">¥</span>
-                                                        <input type="number" className="w-16 bg-transparent font-bold text-slate-700 outline-none" value={item.price} onChange={e => updateCurrentItem(item.id, 'price', e.target.value)} placeholder="0.00" />
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <button className="w-6 h-6 bg-white border rounded flex items-center justify-center active:bg-gray-200" onClick={() => updateCurrentItem(item.id, 'qty', Math.max(1, item.qty - 1))}><Icons.Minus size={14}/></button>
-                                                        <span className="font-bold text-lg w-6 text-center">{item.qty}</span>
-                                                        <button className="w-6 h-6 bg-white border rounded flex items-center justify-center active:bg-gray-200" onClick={() => updateCurrentItem(item.id, 'qty', item.qty + 1)}><Icons.Plus size={14}/></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
+                                    ))}
+                                    {currentOrder.length > 0 && <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 mt-2"><div className="flex items-center gap-2 mb-2 text-sm font-bold text-gray-700"><Icons.Edit size={16} /> <span>备注</span></div><textarea className="w-full bg-gray-50 rounded-lg p-2 text-sm outline-none resize-none" rows="2" placeholder="例如：客户自提..." value={currentRemark} onChange={e => setCurrentRemark(e.target.value)} /></div>}
                                 </div>
                             </div>
-                        )}
-
-                        {/* Tab 2: 历史记录 (日历版) */}
-                        {activeTab === 'history' && (
+                        ) : (
                             <div className="p-4 space-y-4 pb-24 animate-fade-in">
-                                {/* 日历组件 */}
+                                <div className="relative">
+                                    {!isGoodsExpanded ? (
+                                        <div className="flex items-center gap-2"><div className="flex-1 flex gap-2 overflow-x-auto hide-scrollbar pb-1 pr-8"><button onClick={() => setSelectedGoodFilter(null)} className={`px-3 py-1.5 rounded-full text-xs font-bold border ${!selectedGoodFilter ? 'bg-blue-600 text-white' : 'bg-white'}`}>全部</button>{goodsList.map(good => (<button key={good} onClick={() => setSelectedGoodFilter(good)} className={`px-3 py-1.5 rounded-full text-xs font-bold border ${selectedGoodFilter === good ? 'bg-blue-600 text-white' : 'bg-white'}`}>{good}</button>))}</div><button onClick={() => setIsGoodsExpanded(true)} className="absolute right-0 bg-white p-1.5 rounded-full shadow-sm border"><Icons.ChevronDown size={16} /></button></div>
+                                    ) : (
+                                        <div className="bg-white rounded-2xl p-3 shadow-sm border z-10"><div className="flex justify-between mb-3"><span className="text-xs font-bold text-gray-400">选择货物</span><button onClick={() => setIsGoodsExpanded(false)}><Icons.ChevronUp size={16} /></button></div><div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto"><button onClick={() => { setSelectedGoodFilter(null); setIsGoodsExpanded(false); }} className="px-2 py-2 rounded-lg text-xs font-bold border">全部</button>{goodsList.map(g => (<button key={g} onClick={() => { setSelectedGoodFilter(g); setIsGoodsExpanded(false); }} className="px-2 py-2 rounded-lg text-xs font-bold border">{g}</button>))}</div></div>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="bg-white p-3 rounded-2xl shadow-sm border text-center"><div className="text-xs text-gray-400 mb-1">今日</div><div className="text-xl font-bold">{statsData.todayCount}</div></div>
+                                    <div className="bg-white p-3 rounded-2xl shadow-sm border text-center"><div className="text-xs text-gray-400 mb-1">本月</div><div className="text-xl font-bold text-blue-600">{statsData.monthCount}</div></div>
+                                    <div className="bg-white p-3 rounded-2xl shadow-sm border text-center"><div className="text-xs text-gray-400 mb-1">本年</div><div className="text-xl font-bold">{statsData.yearCount}</div></div>
+                                </div>
+
                                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <button onClick={() => changeMonth(-1)} className="p-2 text-gray-400 hover:bg-gray-50 rounded-full"><Icons.ChevronLeft /></button>
-                                        <span className="font-bold text-lg">{currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月</span>
-                                        <button onClick={() => changeMonth(1)} className="p-2 text-gray-400 hover:bg-gray-50 rounded-full"><Icons.ChevronRight /></button>
-                                    </div>
-                                    <div className="grid grid-cols-7 mb-2 text-center text-xs text-gray-400">
-                                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-                                    </div>
-                                    <div className="calendar-grid">
-                                        {calendarData.map((d, i) => (
-                                            d.empty ? <div key={i} className="calendar-day empty"></div> : 
-                                            <div key={i}
-                                                className={`calendar-day ${d.hasData?'cursor-pointer active':''} ${new Date().toDateString()===d.date.toDateString()?'today':''}`}>
-                                                <span>{d.day}</span>
-                                                {/* 如果有数据，显示蓝点。点击查看当天所有订单 */}
-                                                {d.hasData && (
-                                                    <div className="absolute inset-0 flex items-center justify-center" 
-                                                         onClick={() => {
-                                                             // 这里可以做一个中间页显示当天列表，或者直接列出
-                                                             // 为简化，日历下方直接列出当月的所有记录，或者点击日历没反应，只看下方列表
-                                                             // 现在的逻辑：下方直接列出所有记录，日历仅作为视图概览
-                                                         }}>
-                                                        <div className="calendar-dot absolute bottom-2"></div>
-                                                    </div>
-                                                )}
+                                    <div className="flex justify-between items-center mb-4"><button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); setCurrentDate(d); setSelectedDayDetail(null); }}><Icons.ChevronLeft size={20} /></button><span className="font-bold">{currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月</span><button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); setCurrentDate(d); setSelectedDayDetail(null); }}><Icons.ChevronRight size={20} /></button></div>
+                                    <div className="grid grid-cols-7 mb-2 text-center text-xs text-gray-400"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+                                    <div className="calendar-grid">{statsData.calendarDays.map((item, i) => item.empty ? <div key={i}></div> : <div key={i} onClick={() => item.hasData && setSelectedDayDetail(item.date.getTime())} className={`calendar-day ${item.hasData ? 'active cursor-pointer' : ''} ${selectedDayDetail === item.date.getTime() ? 'selected' : ''}`}><span>{item.day}</span>{item.hasData && <div className="text-[9px] text-gray-400">{item.count}</div>}</div>)}</div>
+                                </div>
+
+                                {selectedDayDetails.length > 0 && (
+                                    <div className="animate-slide-up space-y-3">
+                                        <div className="text-xs font-bold text-gray-400 pl-1">{new Date(selectedDayDetail).getMonth() + 1}月{new Date(selectedDayDetail).getDate()}日 记录 ({selectedDayDetails.length}单)</div>
+                                        {selectedDayDetails.map(order => (
+                                            <div key={order.id} onClick={() => setEditingOrderId(order.id)} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <div className="flex flex-col"><span className="text-sm font-bold">{new Date(order.date).toLocaleTimeString()}</span><span className="text-xs text-gray-400">{order.items.length}种商品</span></div>
+                                                    <div className="flex items-center gap-1"><span className="text-blue-600 font-bold">¥{(order.computedAmt || 0).toFixed(2)}</span><Icons.ChevronRight size={16} className="text-gray-300" /></div>
+                                                </div>
+                                                {/* 优化点：直接展示每单详情 */}
+                                                <div className="text-xs text-gray-500 space-y-1">
+                                                    {order.items.map((it, idx) => (
+                                                        <div key={idx} className="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                                                            <span className="text-slate-700">{it.name}</span>
+                                                            <span className="font-mono">x{it.qty}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <h3 className="text-xs font-bold text-gray-400 pl-1">近期记录</h3>
-                                    {orderHistory.sort((a,b)=>b.date-a.date).map(order => (
-                                        <div key={order.id} onClick={() => setViewingOrderId(order.id)}
-                                             className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 active:bg-gray-50 transition-colors cursor-pointer">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="font-bold text-slate-700 text-sm">单据 {new Date(order.date).toLocaleString()}</span>
-                                                <Icons.ChevronRight className="text-gray-300" size={16} />
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-                                                <span>共 {order.totalQty} 件</span>
-                                                <span className="font-bold text-slate-800 text-sm">¥ {order.totalAmount.toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {orderHistory.length === 0 && <div className="text-center text-gray-400 text-xs py-4">暂无历史记录</div>}
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {/* 底部结算栏 (开单模式) */}
+                    {isSettingsOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-black/40" onClick={() => setIsSettingsOpen(false)}></div>
+                            <div className="bg-white w-full max-w-sm rounded-3xl z-10 p-5 shadow-2xl animate-scale-up">
+                                <div className="flex justify-between mb-6"><h2 className="font-bold text-xl">设置</h2><button onClick={() => setIsSettingsOpen(false)} className="bg-gray-100 p-2 rounded-full"><Icons.X /></button></div>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={exportBackup} className="p-4 bg-gray-50 rounded-2xl flex flex-col items-center gap-2 active:bg-blue-50"><div className="text-blue-500"><Icons.Download /></div><span className="text-xs font-bold">备份 JSON</span></button>
+                                        <label className="p-4 bg-gray-50 rounded-2xl flex flex-col items-center gap-2 active:bg-orange-50 cursor-pointer"><div className="text-orange-500"><Icons.Upload /></div><span className="text-xs font-bold">恢复备份</span><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /></label>
+                                    </div>
+                                    <div className="pt-4 border-t"><h3 className="text-xs font-bold text-gray-400 mb-3">常用货物库 ({goodsList.length})</h3><div className="flex flex-wrap gap-2">{goodsList.map(g => <span key={g} onClick={() => removeGoodFromLibrary(g)} className="px-2 py-1 bg-gray-100 rounded-lg text-xs cursor-pointer hover:text-red-500">{g}</span>)}</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {editingOrder && (
+                        <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col animate-slide-in-right">
+                            <div className="bg-white px-4 h-14 border-b flex items-center justify-between pt-safe-top shrink-0"><button onClick={() => setEditingOrderId(null)} className="text-blue-600 font-bold text-sm flex items-center"><Icons.ChevronLeft size={20} /> 返回</button><span className="font-bold text-sm">单据详情</span><div className="w-10"></div></div>
+                            <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-3">
+                                <div className="text-xs text-gray-400 text-center mb-4">{new Date(editingOrder.date).toLocaleString()} {editingOrder.lastModified && <span>· 编辑于 {timeAgo(editingOrder.lastModified)}</span>}</div>
+                                {editingOrder.items.map((it) => (
+                                    <div key={it.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+                                        <div className="flex justify-between mb-2"><span className="font-bold">{it.name}</span><button onClick={() => deleteHistoryItem(editingOrder.id, it.id)} className="text-gray-300 hover:text-red-500"><Icons.Trash size={16} /></button></div>
+                                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg"><div className="flex items-center gap-1 text-xs">¥<input type="number" className="w-10 bg-transparent font-bold outline-none" value={it.price} onChange={(e) => updateHistoryItem(editingOrder.id, it.id, 'price', e.target.value)} /></div><div className="flex items-center gap-2 text-xs">x<input type="number" className="w-8 text-center bg-transparent font-bold outline-none" value={it.qty} onChange={(e) => updateHistoryItem(editingOrder.id, it.id, 'qty', e.target.value)} /></div></div>
+                                    </div>
+                                ))}
+                                <div className="bg-white rounded-xl p-3 mt-4"><div className="flex items-center gap-2 mb-2 text-sm font-bold"><Icons.Edit size={16} /> 备注</div><textarea className="w-full bg-gray-50 rounded-lg p-2 text-sm outline-none" rows="2" value={editingOrder.remark || ''} onChange={e => updateHistoryOrderRemark(editingOrder.id, e.target.value)} /></div>
+                            </div>
+                            <div className="bg-white border-t p-4 pb-safe-bottom safe-area-bottom flex gap-3"><button onClick={() => deleteHistoryOrder(editingOrder.id)} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl">删除单据</button><button onClick={() => setEditingOrderId(null)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg">完成修改</button></div>
+                        </div>
+                    )}
+
                     {activeTab === 'current' && (
-                        <div className="absolute bottom-16 left-4 right-4 bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-3 pb-safe-bottom z-40">
-                            <div className="flex justify-between items-center mb-3 px-1">
-                                <span className="text-sm text-gray-500 font-medium">本单合计</span>
-                                <span className="text-xl font-bold text-red-600">¥ {currentTotalAmount.toFixed(2)}</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => copyOrderText(currentOrder)} className="flex-1 py-3 bg-blue-50 text-blue-600 font-bold rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-transform text-sm">
-                                    <Icons.Copy size={16} /> 复制
-                                </button>
-                                <button onClick={() => exportOrderExcel(currentOrder, `出库单_${Date.now()}`)} className="w-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform">
-                                    <Icons.Share size={16} />
-                                </button>
-                                <button onClick={saveCurrentOrder} className="flex-[1.5] py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-1 shadow-lg shadow-blue-500/30 active:scale-95 transition-transform text-sm">
-                                    <Icons.Save size={16} /> 归档
-                                </button>
-                            </div>
+                        <div className="absolute bottom-16 left-4 right-4 bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-3 pb-safe-bottom z-40 animate-slide-up">
+                            <div className="flex justify-between items-center mb-3 px-1"><span className="text-sm text-gray-500 font-medium">本单合计</span><span className="text-xl font-bold text-red-600">¥ {currentTotalAmount}</span></div>
+                            <div className="flex gap-2"><button onClick={() => copyOrderText(currentOrder, "当前", currentRemark)} className="flex-1 py-3 bg-blue-50 text-blue-600 font-bold rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-transform"><Icons.Copy size={16} /> 复制</button><button onClick={() => exportOrderExcel(currentOrder, `出库单_${Date.now()}`, currentRemark)} className="w-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform"><Icons.Share size={16} /></button><button onClick={saveCurrentOrder} className="flex-[1.5] py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-1 shadow-lg shadow-blue-500/30 active:scale-95 transition-transform"><Icons.Save size={16} /> 归档</button></div>
                         </div>
                     )}
 
-                    {/* 底部导航 */}
                     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe-bottom z-50 h-16 flex items-center justify-around max-w-lg mx-auto">
-                        <button onClick={() => setActiveTab('current')} className={`flex flex-col items-center gap-1 w-16 ${activeTab === 'current' ? 'text-blue-600' : 'text-gray-400'}`}>
-                            <Icons.Package size={24} />
-                            <span className="text-[10px] font-medium">开单</span>
-                        </button>
-                        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 w-16 ${activeTab === 'history' ? 'text-blue-600' : 'text-gray-400'}`}>
-                            <Icons.History size={24} />
-                            <span className="text-[10px] font-medium">记录</span>
-                        </button>
+                        <button onClick={() => setActiveTab('current')} className={`flex flex-col items-center gap-1 w-16 ${activeTab === 'current' ? 'text-blue-600' : 'text-gray-400'}`}><Icons.Package size={24} /><span className="text-[10px] font-medium">开单</span></button>
+                        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 w-16 ${activeTab === 'history' ? 'text-blue-600' : 'text-gray-400'}`}><Icons.History size={24} /><span className="text-[10px] font-medium">报表</span></button>
                     </div>
-
-                    {/* 历史详情页 (可编辑) */}
-                    {viewingOrder && (
-                        <div className="fixed inset-0 z-[60] bg-gray-100 flex flex-col animate-slide-up">
-                            <div className="bg-white px-4 h-14 border-b flex items-center justify-between pt-safe-top shrink-0">
-                                <button onClick={() => setViewingOrderId(null)} className="text-blue-600 font-bold text-sm flex items-center">
-                                    <Icons.ChevronLeft size={20}/> 返回
-                                </button>
-                                <span className="font-bold text-sm">单据详情 (可编辑)</span>
-                                <div className="flex gap-3">
-                                    <button onClick={() => copyOrderText(viewingOrder.items, new Date(viewingOrder.date).toLocaleString())} className="text-blue-600"><Icons.Copy size={20}/></button>
-                                    <button onClick={() => exportOrderExcel(viewingOrder.items, `历史出库单_${viewingOrder.id}`)} className="text-green-600"><Icons.Share size={20}/></button>
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-4 pb-32">
-                                <div className="space-y-3">
-                                    {viewingOrder.items.map((item) => (
-                                        <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div className="flex-1 mr-2">
-                                                    <input type="text" className="font-bold text-base w-full outline-none bg-transparent text-slate-800" 
-                                                        value={item.name} 
-                                                        onChange={e => updateHistoryItem(item.id, 'name', e.target.value)} 
-                                                    />
-                                                    <div className="text-xs text-gray-400 font-mono mt-0.5">{item.code}</div>
-                                                </div>
-                                                <button onClick={() => deleteHistoryItem(item.id)} className="text-gray-300 p-1 hover:text-red-500"><Icons.Trash size={18}/></button>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-gray-400 text-xs">¥</span>
-                                                    <input type="number" className="w-16 bg-transparent font-bold text-slate-700 outline-none" 
-                                                        value={item.price} 
-                                                        onChange={e => updateHistoryItem(item.id, 'price', e.target.value)} 
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <button className="w-6 h-6 bg-white border rounded flex items-center justify-center active:bg-gray-200" 
-                                                        onClick={() => updateHistoryItem(item.id, 'qty', Math.max(1, item.qty - 1))}>
-                                                        <Icons.Minus size={14}/>
-                                                    </button>
-                                                    <span className="font-bold text-lg w-6 text-center">{item.qty}</span>
-                                                    <button className="w-6 h-6 bg-white border rounded flex items-center justify-center active:bg-gray-200" 
-                                                        onClick={() => updateHistoryItem(item.id, 'qty', item.qty + 1)}>
-                                                        <Icons.Plus size={14}/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-white border-t border-gray-200 p-4 pb-safe-bottom safe-area-bottom">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-gray-500 text-sm">总计金额</span>
-                                    <span className="text-xl font-bold text-blue-600">¥ {viewingOrder.totalAmount.toFixed(2)}</span>
-                                </div>
-                                <button onClick={deleteHistoryOrder} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 active:bg-red-100 transition-colors">
-                                    删除整张单据
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                 </div>
             );
         };
@@ -704,6 +589,7 @@
         root.render(<App />);
     </script>
 </body>
+
 </html>
 
 //251128-1
@@ -733,7 +619,8 @@
 2. 备份的功能中，备份文件的下载应该以"App名称_Backup_yyyy-mm-dd"命名
 */
 
-//251128-4
 /*
-1. 统计功能中选择查看某一天的具体记录时，其中的每一单的内容都需要是可编辑修改和删除的，只需在进行操作后添加类似“最后编辑时间：‘时间或多久前’”，这里的‘时间或多久前’采用与github最后更新时间相同的记录时间法，或者针对这类记录功能的app你有更好的记录时间法都可以使用。
+//251128-4
+1.
+统计功能中选择查看某一天的具体记录时，其中的每一单的内容都需要是可编辑修改和删除的，只需在进行操作后添加类似“最后编辑时间：‘时间或多久前’”，这里的‘时间或多久前’采用与github最后更新时间相同的记录时间法，或者针对这类记录功能的app你有更好的记录时间法都可以使用。
 */
